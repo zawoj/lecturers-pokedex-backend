@@ -19,6 +19,8 @@ def make_new_user(data, photo):
     if not 'name' in data:
             raise Exception("'name' is required")
 
+    del data['_id']
+
     blob = bucket.blob(str(uuid.uuid1()) + '.jpeg')
     blob.upload_from_file(photo)
 
@@ -28,6 +30,7 @@ def make_new_user(data, photo):
     dominant_color_rgb = color_thief.get_color(quality=1)
     dominant_color_hex = "#%2x%2x%2x" % dominant_color_rgb
     data["dominantColor"] = dominant_color_hex
+    data["comments"] = []
 
     return data
 
@@ -95,19 +98,30 @@ def read_user(id):
     except Exception as e:
         return f"An Error Occurred: {e}"
 
-# @app.route('/users/<id>/comment', methods=['POST'])
-# def add_comment(id):
-#     try:
-#         doc = lecturers_ref.document(id).get()
-#         d = doc.to_dict()
-#         # id = d['_id']
+@app.route('/users/<id>/comment', methods=['POST'])
+def add_comment(id):
+    try:
+        json = request.get_json()
+        if "comment" not in json:
+            return "Comment was not provided", 500
+        
+        doc = lecturers_ref.document(id).get()
+        lecturer = doc.to_dict()
+        
+        print(lecturer)
 
-#         lecturers_ref.document(id).set(user)
+        if "comments" not in lecturer:
+            lecturer["comments"] = []
 
+        lecturer["comments"].append(json["comment"])
 
-#         return jsonify(d), 200
-#     except Exception as e:
-#         return f"An Error Occurred: {e}"
+        print(lecturer)
+
+        lecturers_ref.document(id).update(lecturer)
+
+        return jsonify(lecturer), 200
+    except Exception as e:
+        return f"An Error Occurred: {e}"
 
 
 
