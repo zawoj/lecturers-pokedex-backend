@@ -22,7 +22,7 @@ def make_new_user(data, photo):
     blob = bucket.blob(str(uuid.uuid1()) + '.jpeg')
     blob.upload_from_file(photo)
 
-    data['photo'] = blob.public_url
+    data['image'] = blob.public_url
 
     color_thief = ColorThief(photo)
     dominant_color_rgb = color_thief.get_color(quality=1)
@@ -33,14 +33,21 @@ def make_new_user(data, photo):
 
 @app.route('/users', methods=['POST'])
 def create_user():
+    print("Przyszedł POST")
+    print(request.form)
     try:
         data = json.loads(request.form.get('data'))
-        photo = request.files['photo']
+        photo = request.files['file']
         user = make_new_user(data, photo)
 
+        print(data)
+        print(photo)
+
         lecturers_ref.add(user)
+        print("kupa")
         return jsonify({"success": True}), 200
     except Exception as e:
+        print("błomd ", e)
         return f"An Error Occurred: {e}"
 
 
@@ -48,7 +55,7 @@ def create_user():
 def update_user(id):
     try:
         data = json.loads(request.form.get('data'))
-        photo = request.files['photo']
+        photo = request.files['file']
         user = make_new_user(data, photo)
 
         lecturers_ref.document(id).set(user)
@@ -71,7 +78,7 @@ def read_all_users():
         for doc in lecturers_ref.stream():
             d = doc.to_dict()
             d['_id'] = doc.id
-            all_lecturers.append({'_id' : doc.id, 'name':d['name']})
+            all_lecturers.append({'_id' : doc.id, 'name':d['name'], 'image':d['image']})
 
         return jsonify(all_lecturers), 200
     except Exception as e:
@@ -87,6 +94,22 @@ def read_user(id):
         return jsonify(d), 200
     except Exception as e:
         return f"An Error Occurred: {e}"
+
+# @app.route('/users/<id>/comment', methods=['POST'])
+# def add_comment(id):
+#     try:
+#         doc = lecturers_ref.document(id).get()
+#         d = doc.to_dict()
+#         # id = d['_id']
+
+#         lecturers_ref.document(id).set(user)
+
+
+#         return jsonify(d), 200
+#     except Exception as e:
+#         return f"An Error Occurred: {e}"
+
+
 
 port = int(os.environ.get('PORT', 8080))
 if __name__ == '__main__':
